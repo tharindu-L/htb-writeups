@@ -27,11 +27,15 @@ sudo openvpn your-htb-vpn-file.ovpn
 
 Then spawn the Sequel machine from the HTB Starting Point page. My target IP was `10.129.97.143`.
 
+<img width="1398" height="106" alt="Target IP" src="https://github.com/user-attachments/assets/e67b2bf5-cef2-442d-be57-7ab65b246128" />
+
 ---
 
 ## Step 1 — Ping the Target
 
 Before doing anything, I always check if the machine is actually reachable:
+
+<img width="587" height="199" alt="Check connectivity" src="https://github.com/user-attachments/assets/bb14f629-7eaf-4678-9ab4-bc5d66e31165" />
 
 ```bash
 ping -c 4 10.129.97.143
@@ -45,6 +49,8 @@ Got 4 replies back with 0% packet loss. Target is alive. ✅
 
 Time to find out what ports are open and what services are running:
 
+<img width="595" height="285" alt="nmap2" src="https://github.com/user-attachments/assets/80fcde42-7b93-4513-a2c6-e1f0c5ee3591" />
+
 ```bash
 nmap -sVC -T5 10.129.97.143
 ```
@@ -54,14 +60,6 @@ nmap -sVC -T5 10.129.97.143
 - `-sC` — run default nmap scripts
 - `-T5` — scan as fast as possible
 
-**Result:**
-
-```
-PORT     STATE SERVICE VERSION
-3306/tcp open  mysql
-Version: 5.5.5-10.3.27-MariaDB-0+deb10u1
-```
-
 Only one port open — **3306**, running **MariaDB**. MariaDB is a community-built fork of MySQL, widely used in web applications.
 
 ---
@@ -69,6 +67,8 @@ Only one port open — **3306**, running **MariaDB**. MariaDB is a community-bui
 ## Step 3 — Try Logging In as Root
 
 MariaDB on port 3306 with no firewall protection is a big red flag. I tried logging in as root with no password:
+
+<img width="668" height="191" alt="Access remote host db server" src="https://github.com/user-attachments/assets/9bd430f6-6340-4f47-8ec0-1b95fac44bb2" />
 
 ```bash
 mysql -u root -h 10.129.97.143 --ssl=0
@@ -89,23 +89,18 @@ This is exactly the kind of misconfiguration that gets real servers compromised.
 
 Once inside the MariaDB shell, list all available databases:
 
+<img width="474" height="169" alt="list the db list" src="https://github.com/user-attachments/assets/7853576a-3095-4663-81c2-a76fadd0ec67" />
+
 ```sql
 show databases;
 ```
-
-**Output:**
-```
-htb
-information_schema
-mysql
-performance_schema
-```
-
 Three of these (`information_schema`, `mysql`, `performance_schema`) are default system databases in every MySQL installation. The interesting one is **htb** — that's unique to this machine.
 
 ---
 
 ## Step 5 — Switch to the HTB Database
+
+<img width="553" height="62" alt="select htb db" src="https://github.com/user-attachments/assets/854db642-3c3c-451c-bf46-213c918b56c4" />
 
 ```sql
 use htb;
@@ -113,14 +108,10 @@ use htb;
 
 Then list the tables inside:
 
+<img width="547" height="153" alt="list the tables list" src="https://github.com/user-attachments/assets/0d2e556d-df44-4934-86c5-7830a19a6bed" />
+
 ```sql
 show tables;
-```
-
-**Output:**
-```
-config
-users
 ```
 
 Two tables — `config` and `users`. The `config` table looks interesting.
@@ -129,31 +120,13 @@ Two tables — `config` and `users`. The `config` table looks interesting.
 
 ## Step 6 — Dump the Config Table
 
+<img width="877" height="218" alt="show the columns" src="https://github.com/user-attachments/assets/d73c15a2-f830-41b0-84d7-b99cb17e7502" />
+
 ```sql
 select * from config;
 ```
 
-**Output:**
-
-| id | name | value |
-|----|------|-------|
-| 1 | timeout | 60s |
-| 2 | security | default |
-| 3 | auto_logon | false |
-| 4 | max_size | 2M |
-| 5 | **flag** | **7b4bec00d1a39e3dd4e021ec3d915da8** |
-| 6 | enable_uploads | false |
-| 7 | authentication_method | radius |
-
 Row 5 — flag found! 🎉
-
----
-
-## Flag
-
-```
-7b4bec00d1a39e3dd4e021ec3d915da8
-```
 
 ---
 
