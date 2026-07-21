@@ -24,12 +24,12 @@ Crocodile is a Very Easy difficulty machine from Hack The Box Starting Point Tie
 Connect to the HTB network using your OpenVPN config file:
 
 ```bash
-sudo openvpn your-htb-vpn-file.ovpn
+sudo openvpn <your vpn filename>
 ```
 
 Then spawn the Crocodile machine from the HTB Starting Point page. My target IP was `10.129.1.15`.
 
-<!-- ADD: machine_IP.png here -->
+<img width="1392" height="110" alt="machine IP" src="https://github.com/user-attachments/assets/d167fbd1-ef47-4a13-9e75-f23421a8c55c" />
 
 ---
 
@@ -43,7 +43,7 @@ ping -c 4 10.129.1.15
 
 All 4 packets returned with 0% packet loss. Target is alive. ✅
 
-<!-- ADD: ping_check.png here -->
+<img width="542" height="176" alt="ping check" src="https://github.com/user-attachments/assets/7e72950b-c3cc-4c6b-bf5c-666de47a8e03" />
 
 ---
 
@@ -55,57 +55,44 @@ Run a full service version scan with default scripts:
 nmap -sVC -T4 10.129.1.15
 ```
 
-**What `-sC` does:** It runs **default Nmap scripts** during the scan — this is the answer to **Task 1**.
+**What `-sC` does:** It runs **default Nmap scripts** during the scan.
 
-<!-- ADD: nmap_scan.png here -->
-
-**Results:**
-
-```
-PORT   STATE SERVICE VERSION
-21/tcp open  ftp     vsftpd 3.0.3
-| ftp-anon: Anonymous FTP login allowed (FTP code 230)
-| -rw-r--r--  allowed.userlist
-| -rw-r--r--  allowed.userlist.passwd
-
-80/tcp open  http    Apache httpd 2.4.41 ((Ubuntu))
-|_http-title: Smash - Bootstrap Business Template
-```
+<img width="790" height="504" alt="nmap scan" src="https://github.com/user-attachments/assets/d6438e2e-96d3-46e3-8079-b5842a6a1849" />
 
 Two open ports — **FTP on port 21** and **HTTP on port 80**.
 
 The nmap output already tells us:
-- FTP version: `vsftpd 3.0.3` (Task 2)
-- FTP anonymous login is allowed — the code returned is `230` (Task 3)
-- Apache version: `Apache httpd 2.4.41` (Task 7)
+- FTP version: `vsftpd 3.0.3` 
+- FTP anonymous login is allowed — the code returned is `230` 
+- Apache version: `Apache httpd 2.4.41` 
 - Two interesting files sitting on the FTP server
 
 ---
 
 ## Step 3 — Anonymous FTP Login
 
-The nmap scan revealed anonymous FTP login is allowed. Connect to FTP using the `anonymous` username (Task 4):
+The nmap scan revealed anonymous FTP login is allowed. Connect to FTP using the `anonymous` username:
 
 ```bash
 ftp anonymous@10.129.1.15
 ```
 
-When prompted for a password, just press Enter. We're in! ✅
+Just press Enter. We're in! ✅
 
-<!-- ADD: connecting_to_ftp_anonymous.png here -->
+<img width="341" height="122" alt="connecting to ftp anonymous" src="https://github.com/user-attachments/assets/01dbc540-ec8a-4a41-8350-148a4e6954c0" />
 
 ---
 
 ## Step 4 — Download Files from FTP
 
-To download files from the FTP server, we use the `get` command (Task 5):
+To download files from the FTP server, we use the `get` command:
 
 ```bash
 get allowed.userlist
 get allowed.userlist.passwd
 ```
 
-<!-- ADD: downloading_file.png here -->
+<img width="644" height="108" alt="downloading file" src="https://github.com/user-attachments/assets/c200e386-e862-4230-866b-3730771ca0f0" />
 
 ---
 
@@ -116,30 +103,16 @@ Check the contents of both files:
 ```bash
 cat allowed.userlist
 ```
+<img width="290" height="85" alt="usernames" src="https://github.com/user-attachments/assets/44772ec2-442d-49c2-929c-6ad27aff917c" />
 
-<!-- ADD: usernames.png here -->
 
-```
-aron
-pwnmeow
-egotisticalsw
-admin
-```
-
-The higher-privilege sounding username is **admin** (Task 6).
+The higher-privilege sounding username is **admin**.
 
 ```bash
 cat allowed.userlist.passwd
 ```
 
-<!-- ADD: passwords.png here -->
-
-```
-root
-Supersecretpassword1
-@BaASD69032123sADS
-rKXM59ESxesUFHAd
-```
+<img width="339" height="85" alt="passwords" src="https://github.com/user-attachments/assets/f188ef45-43dc-4e0d-b761-3b4ecc511e25" />
 
 We now have a list of usernames and matching passwords. Time to find the login page.
 
@@ -147,7 +120,7 @@ We now have a list of usernames and matching passwords. Time to find the login p
 
 ## Step 6 — Web Enumeration with Gobuster
 
-Visiting `http://10.129.1.15` shows a business template website. Let's find hidden pages using Gobuster with the `-x` switch to look for specific file types (Task 8):
+Visiting `http://10.129.1.15` shows a business template website. Let's find hidden pages using Gobuster with the `-x` switch to look for specific file types:
 
 ```bash
 gobuster dir -u http://10.129.1.15/ -w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-small.txt -x php
@@ -155,17 +128,9 @@ gobuster dir -u http://10.129.1.15/ -w /usr/share/seclists/Discovery/Web-Content
 
 The `-x php` switch tells Gobuster to search for PHP files specifically.
 
-<!-- ADD: task_8.png here -->
+<img width="675" height="68" alt="task 8" src="https://github.com/user-attachments/assets/0bb7914b-df76-4f10-aa9c-b7ca94d31b25" />
 
-<!-- ADD: gobuster_scan.png here -->
-
-**Results found:**
-```
-login.php   (Status: 200)
-logout.php  (Status: 302)
-```
-
-The PHP file that gives us an opportunity to authenticate is **`login.php`** (Task 9).
+<img width="1161" height="537" alt="gobuster scan" src="https://github.com/user-attachments/assets/bc3d30d6-d515-4d06-949e-e9d8e93c589d" />
 
 ---
 
@@ -173,23 +138,20 @@ The PHP file that gives us an opportunity to authenticate is **`login.php`** (Ta
 
 Navigate to `http://10.129.1.15/login.php`:
 
-<!-- ADD: logi_page.png here -->
+<img width="1892" height="914" alt="logi page" src="https://github.com/user-attachments/assets/97f181e5-21ce-48ff-86dd-c01d0a76de06" />
 
 Try the credentials from our downloaded files. Using:
 - **Username:** `admin`
 - **Password:** `rKXM59ESxesUFHAd`
+  
+<img width="290" height="85" alt="usernames" src="https://github.com/user-attachments/assets/fadfa8b7-196a-4e20-ac54-e9e1b67006d7" />
+
+<img width="339" height="85" alt="passwords" src="https://github.com/user-attachments/assets/272e8a62-b750-4782-980e-f4990ba9f2c2" />
 
 We're in! The admin dashboard loads and shows us the flag. 🎉
 
-<!-- ADD: adminpage.png here -->
+<img width="1911" height="1033" alt="adminpage" src="https://github.com/user-attachments/assets/a1ad7b97-1b57-4c64-8d2f-f579b822ee37" />
 
----
-
-## Flag
-
-```
-c7110277ac44d78b6a9fff2232434d16
-```
 
 ---
 
